@@ -1,4 +1,4 @@
-NAME=sort-MP3
+NAME=Golang-Sudying
 
 # COLORS
 GREEN  := $(shell tput -Txterm setaf 2)
