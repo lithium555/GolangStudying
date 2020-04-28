@@ -1,2 +1,5 @@
 bind_addr = ":8080"
 log_level = "debug"
+
+[store]
+database_url = "host=localhost port=5432 dbname=restapi_dev connect_timeout=10  sslmode=disable"

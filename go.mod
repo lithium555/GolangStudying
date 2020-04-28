@@ -8,8 +8,11 @@ require (
 	github.com/codegangsta/inject v0.0.0-20150114235600-33e0aa1cb7c0 // indirect
 	github.com/codegangsta/martini v0.0.0-20170121215854-22fa46961aab
 	github.com/go-martini/martini v0.0.0-20170121215854-22fa46961aab
+	github.com/golang-migrate/migrate v3.5.4+incompatible // indirect
+	github.com/golangci/golangci-lint v1.25.1 // indirect
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/websocket v1.4.2
+	github.com/lib/pq v1.4.0
 	github.com/martini-contrib/render v0.0.0-20150707142108-ec18f8345a11
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c // indirect
 	github.com/russross/blackfriday v1.5.2
