@@ -1,80 +1,34 @@
 package apiserver
 
 import (
-	"io"
+	"database/sql"
 	"net/http"
 
-	"github.com/gorilla/mux"
-	"github.com/lithium555/GolangStudying/http-rest-api/internal/app/store"
-	"github.com/sirupsen/logrus"
+	"github.com/lithium555/GolangStudying/http-rest-api/internal/app/store/sqlstore"
 )
 
-// APIServer ...
-type APIServer struct {
-	config *Config
-	logger *logrus.Logger
-	router *mux.Router
-	store  *store.Store
-}
-
-// New ...
-func New(config *Config) *APIServer {
-	return &APIServer{
-		config: config,
-		logger: logrus.New(),
-		router: mux.NewRouter(),
-	}
-}
-
-// Start represents start of http server and connection to db
-func (s *APIServer) Start() error {
-	if err := s.configureLogger(); err != nil {
-		return err
-	}
-	s.configureRouter()
-
-	if err := s.configureStore(); err != nil {
-		return err
-	}
-
-	s.logger.Info("Starting api server...")
-
-	return http.ListenAndServe(s.config.BindAddr, s.router)
-}
-
-func (s *APIServer) configureLogger() error {
-	level, err := logrus.ParseLevel(s.config.LogLevel)
+func Start(config *Config) error {
+	db, err := newDB(config.DatabaseURL)
 	if err != nil {
 		return err
 	}
+	defer db.Close()
 
-	s.logger.SetLevel(level)
-	return nil
+	store := sqlstore.New(db)
+	srv := newServer(store) // implement server
+
+	return http.ListenAndServe(config.BindAddr, srv)
 }
 
-func (s *APIServer) configureRouter() {
-	s.router.HandleFunc("/hello", s.handleHello())
-}
-
-func (s *APIServer) configureStore() error {
-	st := store.New(s.config.Store)
-	if err := st.Open(); err != nil {
-		return err
+func newDB(databaseURL string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", databaseURL)
+	if err != nil {
+		return nil, err
 	}
 
-	s.store = st
-	return nil
-}
-
-// handleHello ... Идея возвращать в сигнатуре http.HandlerFunc дает возможность до return func(w http.ResponseWriter, r *http.Request)
-//  мы можем определить переменные на 52-53, (type request struct ) которые будут использоваться только в этом хендлере. И этот код выполнится здесь один раз.
-// Таким образом не захламляем код, а бизнес-логика будет внутри функции, которую мы возвращаем.
-func (s *APIServer) handleHello() http.HandlerFunc {
-	type request struct {
-		name string
+	if err := db.Ping(); err != nil {
+		return nil, err
 	}
 
-	return func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "Hello")
-	}
+	return db, nil
 }
