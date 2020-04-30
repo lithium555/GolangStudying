@@ -11,3 +11,9 @@ createdb restapi_test
 migrate -path migrations -database "postgres://localhost/restapi_test?sslmode=disable" up
 
 psql -d restapi_dev
+
+http POST http://localhost:8080/users email=invalid
+http POST http://localhost:8080/users email=user@example.org password=password
+
+http POST http://localhost:8080/users email=user@example.org password=123
+

@@ -6,11 +6,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// User represents user data struct
 type User struct {
-	ID                int
-	Email             string
-	Password          string
-	EncryptedPassword string
+	ID                int    `json:"id"`
+	Email             string `json:"email"`
+	Password          string `json:"password,omitempty"` // omitempty ->>>> if pass is empty - we wouldn`t return it
+	EncryptedPassword string `json:"-"`
 }
 
 // BeforeCreate ... here we will hash password before adding into db
@@ -24,6 +25,17 @@ func (u *User) BeforeCreate() error {
 		u.EncryptedPassword = enc
 	}
 	return nil
+}
+
+// Sanitize will overwrite attributes, which which we consider private.
+// Also we dont what to render them into external world.
+func (u *User) Sanitize() {
+	u.Password = ""
+}
+
+// ComparePassword will compare current password of user 'EncryptedPassword' with pass, which we got as parameter
+func (u *User) ComparePassword(password string) bool {
+	return bcrypt.CompareHashAndPassword([]byte(u.EncryptedPassword), []byte(password)) == nil
 }
 
 func encryptString(s string) (string, error) {
