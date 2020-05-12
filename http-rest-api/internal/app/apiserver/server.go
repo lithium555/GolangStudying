@@ -3,8 +3,11 @@ package apiserver
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -22,6 +25,7 @@ var (
 const (
 	sessionName        = "gopherSchool"
 	ctxKeyUser  ctxKey = iota
+	ctxKeyRequestID
 )
 
 type server struct {
@@ -33,11 +37,16 @@ type server struct {
 
 type ctxKey int8
 
-func newServer(store *sqlstore.Store, sessionStore sessions.Store) *server {
+func newServer(store interface{}, sessionStore sessions.Store) *server {
+	st, ok := store.(*sqlstore.Store)
+	if !ok {
+		log.Println("newServer() failed, wrong type of argument store.")
+	}
+
 	s := &server{
 		router:       mux.NewRouter(),
 		logger:       logrus.New(),
-		store:        store,
+		store:        st,
 		sessionStore: sessionStore,
 	}
 
@@ -51,6 +60,8 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) configureRouter() {
+	s.router.Use(s.setRequestID)
+	s.router.Use(s.logRequest)
 	s.router.Use(handlers.CORS(handlers.AllowedOrigins([]string{"*"})))
 	s.router.HandleFunc("/users", s.handleUsersCreate()).Methods("POST")
 	s.router.HandleFunc("/sessions", s.handleSessionsCreate()).Methods("POST")
@@ -174,4 +185,33 @@ func (s *server) respond(w http.ResponseWriter, r *http.Request, code int, data 
 	if data != nil {
 		json.NewEncoder(w).Encode(data)
 	}
+}
+
+func (s *server) setRequestID(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := uuid.New().String()
+		w.Header().Set("X-Request-ID", id)
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ctxKeyRequestID, id)))
+	})
+}
+
+func (s *server) logRequest(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger := s.logger.WithFields(logrus.Fields{
+			"remote_addr": r.RemoteAddr,
+			"request_id":  r.Context().Value(ctxKeyRequestID),
+		})
+		// started GET /endpoint
+		logger.Infof("started %s %s ", r.Method, r.RequestURI)
+
+		start := time.Now()
+		rw := &responseWriter{w, http.StatusOK}
+		next.ServeHTTP(rw, r)
+
+		logger.Infof(
+			"completed with %d %s in '%v'",
+			rw.code,
+			http.StatusText(rw.code),
+			time.Now().Sub(start))
+	})
 }
