@@ -12,6 +12,7 @@ require (
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
 	github.com/golang-migrate/migrate v3.5.4+incompatible // indirect
 	github.com/golangci/golangci-lint v1.25.1 // indirect
+	github.com/google/uuid v1.1.1
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/securecookie v1.1.1
